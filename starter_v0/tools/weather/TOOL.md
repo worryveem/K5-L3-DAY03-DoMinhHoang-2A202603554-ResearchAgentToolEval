@@ -55,7 +55,7 @@ result_f = TOOL_FUNCTIONS["weather"](location="Singapore", country_code="SG", un
 
 Câu hỏi mẫu: “Thời tiết hiện tại ở Hà Nội thế nào, dùng độ C?”
 
-Kiểm thử offline: `python -m pytest tests/test_tools_coder_a.py -k weather -q`.
+Kiểm thử offline: `python -m pytest tests/test_tools_todo.py -k weather -q`.
 
 ## Tài liệu API
 

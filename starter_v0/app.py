@@ -30,7 +30,8 @@ from chat import (
 )
 from env_loader import load_lab_env
 from providers import make_provider
-from tools import load_tool_declarations, to_openai_tools
+from tools import TOOL_FUNCTIONS, load_tool_declarations, to_openai_tools
+from tools.send.tool import approve_message
 from versioning import artifact_version_dict, build_artifact_version
 
 # Load environment variables from .env
@@ -108,41 +109,12 @@ def resolve_version_artifacts(version: str) -> tuple[Path, Path]:
 
 # --- Auto-detect provider & model from .env ---
 def detect_provider_and_model() -> tuple[str, str, str | None, bool]:
-    """Tự động kiểm tra API key trong môi trường để chọn Provider và Model phù hợp."""
+    """Nhóm sử dụng OpenAI cho giao diện và các lệnh CLI."""
     load_lab_env(ROOT)
-
-    # 1. Kiểm tra Gemini
-    if not os.getenv("GEMINI_API_KEY") and os.getenv("GOOGLE_API_KEY"):
-        os.environ["GEMINI_API_KEY"] = os.getenv("GOOGLE_API_KEY", "")
-    gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
-    if gemini_key and not gemini_key.startswith("your_"):
-        gemini_model = os.getenv("GEMINI_MODEL", "").strip() or "gemini-3.5-flash-lite"
-        return "gemini", gemini_model, "GEMINI_API_KEY", True
-
-    # 2. Kiểm tra OpenAI
     openai_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if openai_key and not openai_key.startswith("your_"):
-        openai_model = os.getenv("OPENAI_MODEL", "").strip() or "gpt-4o-mini"
-        return "openai", openai_model, "OPENAI_API_KEY", True
-
-    # 3. Kiểm tra OpenRouter
-    openrouter_key = os.getenv("OPENROUTER_API_KEY", "").strip()
-    if openrouter_key and not openrouter_key.startswith("your_"):
-        openrouter_model = os.getenv("OPENROUTER_MODEL", "").strip() or "google/gemini-3.5-flash-lite"
-        return "openrouter", openrouter_model, "OPENROUTER_API_KEY", True
-
-    # 4. Kiểm tra Anthropic
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
-    if anthropic_key and not anthropic_key.startswith("your_"):
-        anthropic_model = os.getenv("ANTHROPIC_MODEL", "").strip() or "claude-3-5-haiku-20241022"
-        return "anthropic", anthropic_model, "ANTHROPIC_API_KEY", True
-
-    # 5. Kiểm tra Ollama
-    if os.getenv("OLLAMA_BASE_URL"):
-        return "ollama", "qwen2.5:7b", "OLLAMA_BASE_URL", True
-
-    # Mặc định theo yêu cầu
-    return "gemini", "gemini-3.5-flash-lite", "GEMINI_API_KEY", False
+    model = os.getenv("OPENAI_MODEL", "").strip() or "gpt-4o-mini"
+    has_key = bool(openai_key and not openai_key.startswith("your_"))
+    return "openai", model, "OPENAI_API_KEY", has_key
 
 
 AUTO_PROVIDER, AUTO_MODEL, KEY_ENV_VAR, HAS_VALID_KEY = detect_provider_and_model()
@@ -182,6 +154,7 @@ def init_session_state(version_label: str) -> None:
     st.session_state.history = []
     st.session_state.turn_index = 0
     st.session_state.turns_display = []
+    st.session_state.pending_send = None
 
 
 # Khởi tạo mặc định nếu chưa có
@@ -436,8 +409,49 @@ if is_awaiting_user:
                     st.session_state.pending_prompt = opt
                     st.rerun()
 
+pending_send = st.session_state.get("pending_send")
+if pending_send:
+    st.warning("Xác nhận gửi Telegram. Hãy kiểm tra nguyên văn nội dung bên dưới.")
+    st.code(pending_send["text"], language=None)
+    confirm_col, cancel_col, _ = st.columns([1.3, 1.3, 3])
+    decision = None
+    with confirm_col:
+        if st.button("Xác nhận gửi", key="send_confirm", use_container_width=True):
+            decision = True
+    with cancel_col:
+        if st.button("Hủy gửi", key="send_cancel", use_container_width=True):
+            decision = False
+    if decision is not None:
+        text_to_send = pending_send["text"]
+        if decision:
+            with approve_message(text_to_send):
+                send_result = TOOL_FUNCTIONS["send"](text=text_to_send, confirmed=True)
+            result_text = (
+                "Đã gửi nội dung tới Telegram."
+                if send_result.get("status") == "sent"
+                else f"Gửi Telegram không thành công: {send_result.get('message', 'Kiểm tra cấu hình và thử lại.')}"
+            )
+        else:
+            send_result = {"status": "cancelled", "message": "Người dùng đã hủy gửi."}
+            result_text = "Đã hủy gửi Telegram."
+
+        pending_send["event"]["result"] = send_result
+        turn = st.session_state.turns_display[-1]
+        turn["status"] = "answered" if decision and send_result.get("status") == "sent" else "cancelled" if not decision else "send_error"
+        previous_text = turn.get("assistant_text")
+        turn["assistant_text"] = result_text
+        turn["confirmation"] = {"approved": decision, "at": now_iso(), "text": text_to_send}
+        turn["ended_at"] = now_iso()
+        if st.session_state.history and st.session_state.history[-1] == {"role": "assistant", "content": previous_text}:
+            st.session_state.history[-1]["content"] = result_text
+        st.session_state.pending_send = None
+        write_transcript(st.session_state.transcript_path, st.session_state.transcript)
+        st.rerun()
+
 chat_placeholder = "Nhập câu trả lời của bạn cho Agent…" if is_awaiting_user else "Nhập câu hỏi, yêu cầu nghiên cứu hoặc câu trả lời của bạn…"
-user_input = st.chat_input(chat_placeholder) or st.session_state.pop("pending_prompt", None)
+user_input = st.chat_input(chat_placeholder, disabled=bool(pending_send)) or (
+    None if pending_send else st.session_state.pop("pending_prompt", None)
+)
 
 st.markdown('<div class="input-hint-row">Nhấn <strong>Enter</strong> để gửi &nbsp;·&nbsp; <strong>Shift + Enter</strong> để xuống dòng</div>', unsafe_allow_html=True)
 
@@ -541,14 +555,36 @@ if user_input:
 
                 for call in calls:
                     status_box.write(f"**Đang gọi:** `{call.name}` với tham số: `{json.dumps(call.args, ensure_ascii=False)}`")
-                    event = execute_tool_call(call)
+                    if call.name == "send" and isinstance(call.args.get("text"), str) and 0 < len(call.args["text"].strip()) <= 4096:
+                        send_text = call.args["text"]
+                        event = {
+                            "tool": "send",
+                            "args": call.args,
+                            "result": {
+                                "status": "needs_confirmation",
+                                "awaiting_user": True,
+                                "response_type": "yes_no",
+                                "question": "Xác nhận gửi đúng nội dung tới Telegram?",
+                            },
+                        }
+                        st.session_state.pending_send = {"text": send_text, "event": event}
+                    elif call.name == "send":
+                        event = {"tool": "send", "args": call.args, "result": {
+                            "error": "ValueError", "message": "Nội dung gửi phải dài 1–4096 ký tự."
+                        }}
+                    else:
+                        event = execute_tool_call(call)
                     round_record["tool_results"].append(event)
                     all_tool_events.append(event)
 
                     result = event.get("result", {})
+                    if call.name == "send" and st.session_state.pending_send:
+                        final_status = "waiting_for_confirmation"
+                        final_assistant_text = "Agent muốn gửi một tin nhắn tới Telegram. Hãy xem nguyên văn và xác nhận ở bên dưới."
+                        status_box.update(label="Chờ xác nhận gửi Telegram", state="complete", expanded=False)
+                        break
                     if isinstance(result, dict) and result.get("awaiting_user"):
                         question = result.get("question") or call.args.get("question") or "Bạn bổ sung thêm thông tin nhé."
-                        live_rounds.append(round_record)
                         final_status = "waiting_for_user"
                         final_assistant_text = question
                         status_box.update(
@@ -562,7 +598,7 @@ if user_input:
 
                 live_rounds.append(round_record)
 
-                if final_status == "waiting_for_user":
+                if final_status in {"waiting_for_user", "waiting_for_confirmation"}:
                     break
 
                 working_messages.append(tool_results_message(non_clarification_events))
@@ -595,3 +631,5 @@ if user_input:
         
         write_transcript(st.session_state.transcript_path, st.session_state.transcript)
         st.toast(f"Đã lưu nhật ký: {st.session_state.transcript_path.name}")
+        if final_status in {"waiting_for_user", "waiting_for_confirmation"}:
+            st.rerun()

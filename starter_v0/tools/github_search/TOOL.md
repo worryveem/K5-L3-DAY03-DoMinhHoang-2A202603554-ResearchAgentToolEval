@@ -62,7 +62,7 @@ result = TOOL_FUNCTIONS["github_search"](
 
 Câu hỏi mẫu: “Tìm 3 repository Python về RAG trên GitHub, nhiều sao nhất.”
 
-Kiểm thử offline: `python -m pytest tests/test_tools_coder_a.py -k github -q`.
+Kiểm thử offline: `python -m pytest tests/test_tools_todo.py -k github -q`.
 
 ## Tài liệu API
 

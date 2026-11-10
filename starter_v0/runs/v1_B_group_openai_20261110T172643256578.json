@@ -1,0 +1,923 @@
+{
+  "run_id": "v1_B_group_openai_20261110T172643256578",
+  "version": "v1",
+  "artifact_version": "v1+pb6679a4ba2a5+t8b4d5276fdc2",
+  "prompt_hash": "b6679a4ba2a5a6ff5c4d53fe1e6426a3c156a0d6141eb9a1f9135067733b9490",
+  "tools_hash": "8b4d5276fdc2439b4d25874bafeaf8b94319669e070247d06de39447195d0391",
+  "phase": "B",
+  "suite": "group",
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "system_prompt": "C:\\Users\\le hoang\\.gemini\\antigravity\\scratch\\K5-L3-DAY03-DoMinhHoang-2A202603554-ResearchAgentToolEval\\starter_v0\\artifacts\\system_prompt.md",
+  "tools": "C:\\Users\\le hoang\\.gemini\\antigravity\\scratch\\K5-L3-DAY03-DoMinhHoang-2A202603554-ResearchAgentToolEval\\starter_v0\\artifacts\\tools.yaml",
+  "eval_cases": "data\\eval_group.json",
+  "dataset_id": "day04_v2_research_group",
+  "dataset_role": "group",
+  "description": "10 team eval cases (5 single-turn, 5 multi-turn) covering Person 2 tools (weather, github_search), Person 3 tools (deduplicate, citation_audit), and common failure traps.",
+  "generated_at": "2026-11-10T17:26:43",
+  "summary": {
+    "total_cases": 10,
+    "measured_cases": 10,
+    "provider_error_cases": 0,
+    "passed_cases": 9,
+    "case_accuracy": 0.9,
+    "tool_routing_accuracy": 0.9,
+    "argument_accuracy": 0.9,
+    "multiturn_accuracy": 1.0,
+    "failure_counts": {
+      "wrong_tool": 1
+    },
+    "observed_mismatch_counts": {
+      "extra_tool_call": 1
+    }
+  },
+  "results": [
+    {
+      "id": "G01_weather_fahrenheit_routing",
+      "phase": "B",
+      "suite": "group",
+      "case_suite": "group",
+      "is_multiturn": false,
+      "metadata": {
+        "skill": "weather_routing_and_units",
+        "difficulty": "medium",
+        "what_it_tests": "Route current weather query to weather (not lookup) and extract units=fahrenheit."
+      },
+      "input": "Thời tiết hiện tại ở Tokyo theo độ F (fahrenheit) lúc này thế nào?",
+      "expect": {
+        "tool_calls": [
+          {
+            "name": "weather",
+            "args": {
+              "location": "Tokyo",
+              "units": "fahrenheit"
+            }
+          }
+        ]
+      },
+      "result": {
+        "passed": true,
+        "routing_correct": true,
+        "args_correct": true,
+        "actual_tool_calls": [
+          {
+            "name": "weather",
+            "args": {
+              "location": "Tokyo",
+              "units": "fahrenheit"
+            }
+          }
+        ],
+        "actual_text": null,
+        "case_failure_type": "wrong_arg_value",
+        "observed_mismatch": null,
+        "failure_type": null,
+        "failures": []
+      },
+      "tool_results": [
+        {
+          "tool": "weather",
+          "args": {
+            "location": "Tokyo",
+            "units": "fahrenheit"
+          },
+          "result": {
+            "tool": "weather",
+            "location": {
+              "name": "Tokyo",
+              "admin1": "Tokyo",
+              "country": "Japan",
+              "country_code": "JP",
+              "latitude": 35.6895,
+              "longitude": 139.69171,
+              "feature_code": "PPLC"
+            },
+            "timezone": "Asia/Tokyo",
+            "units": "fahrenheit",
+            "current": {
+              "time": "2026-11-10T19:15",
+              "interval": 900,
+              "temperature_2m": 51.2,
+              "relative_humidity_2m": 70,
+              "apparent_temperature": 48.6,
+              "weather_code": 3,
+              "wind_speed_10m": 2.2
+            },
+            "current_units": {
+              "time": "iso8601",
+              "interval": "seconds",
+              "temperature_2m": "°F",
+              "relative_humidity_2m": "%",
+              "apparent_temperature": "°F",
+              "weather_code": "wmo code",
+              "wind_speed_10m": "km/h"
+            },
+            "condition": "Nhiều mây",
+            "items": [
+              {
+                "title": "Thời tiết hiện tại: Tokyo, Tokyo, Japan",
+                "summary": "Nhiều mây; nhiệt độ 51.2 °F; cảm nhận 48.6 °F; độ ẩm 70%; gió 2.2 km/h. Thời điểm: 2026-11-10T19:15 (Asia/Tokyo). Điều kiện hiện tại từ mô hình thời tiết Open-Meteo.",
+                "url": "https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.69171&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cweather_code%2Cwind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=kmh&timezone=auto",
+                "source": "Open-Meteo",
+                "date": "2026-11-10T19:15"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "G02_weather_missing_location_trap",
+      "phase": "B",
+      "suite": "group",
+      "case_suite": "group",
+      "is_multiturn": false,
+      "metadata": {
+        "skill": "clarify_missing_location",
+        "difficulty": "medium",
+        "what_it_tests": "Missing location trap: must call clarify instead of guessing a city."
+      },
+      "input": "Kiểm tra giúp mình thời tiết hiện tại xem có mưa không?",
+      "expect": {
+        "tool_calls": [
+          {
+            "name": "clarify",
+            "args": {
+              "response_type": "text"
+            }
+          }
+        ]
+      },
+      "result": {
+        "passed": true,
+        "routing_correct": true,
+        "args_correct": true,
+        "actual_tool_calls": [
+          {
+            "name": "clarify",
+            "args": {
+              "question": "Bạn vui lòng cho biết tên thành phố hoặc địa điểm cụ thể mà bạn muốn kiểm tra thời tiết?",
+              "response_type": "text"
+            }
+          }
+        ],
+        "actual_text": null,
+        "case_failure_type": "missing_info",
+        "observed_mismatch": null,
+        "failure_type": null,
+        "failures": []
+      },
+      "tool_results": [
+        {
+          "tool": "clarify",
+          "args": {
+            "question": "Bạn vui lòng cho biết tên thành phố hoặc địa điểm cụ thể mà bạn muốn kiểm tra thời tiết?",
+            "response_type": "text"
+          },
+          "result": {
+            "tool": "ask_user",
+            "question": "Bạn vui lòng cho biết tên thành phố hoặc địa điểm cụ thể mà bạn muốn kiểm tra thời tiết?",
+            "response_type": "text",
+            "options": [],
+            "awaiting_user": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "G03_github_search_stars_limit",
+      "phase": "B",
+      "suite": "group",
+      "case_suite": "group",
+      "is_multiturn": false,
+      "metadata": {
+        "skill": "github_search_routing_and_args",
+        "difficulty": "medium",
+        "what_it_tests": "Route repository discovery to github_search (not lookup) with sort=stars and max_results=3."
+      },
+      "input": "Tìm giúp mình 3 repository mã nguồn mở về AI agent có nhiều sao nhất trên GitHub.",
+      "expect": {
+        "tool_calls": [
+          {
+            "name": "github_search",
+            "args": {
+              "sort": "stars",
+              "max_results": 3
+            }
+          }
+        ]
+      },
+      "result": {
+        "passed": true,
+        "routing_correct": true,
+        "args_correct": true,
+        "actual_tool_calls": [
+          {
+            "name": "github_search",
+            "args": {
+              "query": "AI agent",
+              "sort": "stars",
+              "max_results": 3
+            }
+          }
+        ],
+        "actual_text": null,
+        "case_failure_type": "wrong_tool",
+        "observed_mismatch": null,
+        "failure_type": null,
+        "failures": []
+      },
+      "tool_results": [
+        {
+          "tool": "github_search",
+          "args": {
+            "query": "AI agent",
+            "sort": "stars",
+            "max_results": 3
+          },
+          "result": {
+            "tool": "github_search",
+            "query": "AI agent",
+            "sort": "stars",
+            "order": "desc",
+            "total_count": 755306,
+            "incomplete_results": false,
+            "items": [
+              {
+                "title": "morluto/rea",
+                "url": "https://github.com/morluto/rea",
+                "source": "github.com",
+                "summary": "Reverse engineer anything with agents, from app behavior down to native binaries.",
+                "stars": 448366,
+                "forks": 110511,
+                "language": "TypeScript",
+                "license": "MIT",
+                "topics": [
+                  "agent-skills",
+                  "ai",
+                  "android",
+                  "claude-code",
+                  "cli",
+                  "cpp",
+                  "dsh-plugin",
+                  "html",
+                  "java",
+                  "javascript",
+                  "linux",
+                  "mcp",
+                  "nodejs",
+                  "python",
+                  "rea",
+                  "react",
+                  "rust",
+                  "security",
+                  "touhou",
+                  "typescript"
+                ],
+                "archived": false,
+                "date": "2026-11-10T10:26:12Z"
+              },
+              {
+                "title": "obra/superpowers",
+                "url": "https://github.com/obra/superpowers",
+                "source": "github.com",
+                "summary": "An agentic skills framework & software development methodology that works.",
+                "stars": 315372,
+                "forks": 28049,
+                "language": "Shell",
+                "license": "MIT",
+                "topics": [
+                  "ai",
+                  "brainstorming",
+                  "coding",
+                  "obra",
+                  "sdlc",
+                  "skills",
+                  "subagent-driven-development",
+                  "superpowers"
+                ],
+                "archived": false,
+                "date": "2026-11-10T10:22:33Z"
+              },
+              {
+                "title": "NousResearch/hermes-agent",
+                "url": "https://github.com/NousResearch/hermes-agent",
+                "source": "github.com",
+                "summary": "The agent that grows with you",
+                "stars": 262214,
+                "forks": 58476,
+                "language": "Python",
+                "license": "MIT",
+                "topics": [
+                  "ai",
+                  "ai-agent",
+                  "ai-agents",
+                  "anthropic",
+                  "chatgpt",
+                  "claude",
+                  "claude-code",
+                  "codex",
+                  "hermes",
+                  "hermes-agent",
+                  "llm",
+                  "nous-research",
+                  "openai"
+                ],
+                "archived": false,
+                "date": "2026-11-10T10:26:19Z"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "G04_weather_vs_news_trap",
+      "phase": "B",
+      "suite": "group",
+      "case_suite": "group",
+      "is_multiturn": false,
+      "metadata": {
+        "skill": "distinguish_news_from_weather",
+        "difficulty": "hard",
+        "what_it_tests": "Trap mentioning storm/rain: news report query must route to lookup(topic=news, timeframe=day), not weather."
+      },
+      "input": "Tin tức thời sự hôm nay về bão và mưa lớn ở miền Trung trên báo chí có gì mới?",
+      "expect": {
+        "tool_calls": [
+          {
+            "name": "lookup",
+            "args": {
+              "topic": "news",
+              "timeframe": "day"
+            }
+          }
+        ]
+      },
+      "result": {
+        "passed": false,
+        "routing_correct": false,
+        "args_correct": false,
+        "actual_tool_calls": [
+          {
+            "name": "lookup",
+            "args": {
+              "query": "bão mưa lớn miền Trung",
+              "topic": "news",
+              "timeframe": "day"
+            }
+          },
+          {
+            "name": "social_search",
+            "args": {
+              "query": "bão mưa lớn miền Trung",
+              "search_type": "Top"
+            }
+          }
+        ],
+        "actual_text": null,
+        "case_failure_type": "wrong_tool",
+        "observed_mismatch": "extra_tool_call",
+        "failure_type": "wrong_tool",
+        "failures": [
+          "extra tool call social_search"
+        ]
+      },
+      "tool_results": [
+        {
+          "tool": "lookup",
+          "args": {
+            "query": "bão mưa lớn miền Trung",
+            "topic": "news",
+            "timeframe": "day"
+          },
+          "result": {
+            "tool": "web_search",
+            "error": "RuntimeError",
+            "message": "Missing TAVILY_API_KEY env var"
+          }
+        },
+        {
+          "tool": "social_search",
+          "args": {
+            "query": "bão mưa lớn miền Trung",
+            "search_type": "Top"
+          },
+          "result": {
+            "tool": "search_tweets",
+            "error": "RuntimeError",
+            "message": "Missing RAPIDAPI_KEY env var"
+          }
+        }
+      ]
+    },
+    {
+      "id": "G05_unnecessary_tool_capabilities_trap",
+      "phase": "B",
+      "suite": "group",
+      "case_suite": "group",
+      "is_multiturn": false,
+      "metadata": {
+        "skill": "no_tool_meta_capabilities",
+        "difficulty": "medium",
+        "what_it_tests": "Unnecessary tool trap: meta question mentioning weather, github_search, deduplicate and citation_audit keywords must answer directly without calling tools."
+      },
+      "input": "Bạn có những công cụ nào để tra thời tiết, tìm repo GitHub, kiểm tra trùng lặp nguồn và kiểm tra trích dẫn?",
+      "expect": {
+        "no_tool": true,
+        "behavior": "answer_without_tool"
+      },
+      "result": {
+        "passed": true,
+        "routing_correct": true,
+        "args_correct": true,
+        "actual_tool_calls": [],
+        "actual_text": "Tôi có các công cụ sau để hỗ trợ bạn:\n\n1. **Tra thời tiết**: Tôi có thể lấy thông tin thời tiết hiện tại cho một thành phố cụ thể.\n2. **Tìm repo GitHub**: Tôi có thể tìm kiếm các repository mã nguồn công khai trên GitHub theo chủ đề, ngôn ngữ, số sao, và các tiêu chí khác.\n3. **Kiểm tra trùng lặp nguồn**: Tôi có thể loại bỏ các URL trùng lặp từ một danh sách các nguồn đã có.\n4. **Kiểm tra trích dẫn**: Tôi có thể kiểm tra các mục đã cho để xác định xem có thiếu thông tin nào (như tiêu đề, nguồn, URL) hoặc có URL không hợp lệ hay không.\n\nNếu bạn cần sử dụng một trong các công cụ này, hãy cho tôi biết yêu cầu cụ thể của bạn!",
+        "case_failure_type": "unnecessary_tool",
+        "observed_mismatch": null,
+        "failure_type": null,
+        "failures": []
+      },
+      "tool_results": []
+    },
+    {
+      "id": "G06_mt_weather_clarify_then_fill",
+      "phase": "B",
+      "suite": "group",
+      "case_suite": "group",
+      "is_multiturn": true,
+      "metadata": {
+        "skill": "multiturn_weather_fill",
+        "difficulty": "medium",
+        "what_it_tests": "Multi-turn fill: carry location=Seoul and units=celsius across turns."
+      },
+      "input": [
+        {
+          "role": "user",
+          "content": "Cho mình hỏi thời tiết hiện tại bên ngoài thế nào?"
+        },
+        {
+          "role": "user",
+          "content": "Ở Seoul nhé"
+        },
+        {
+          "role": "user",
+          "content": "Dùng độ C thôi"
+        }
+      ],
+      "expect": {
+        "tool_calls": [
+          {
+            "name": "weather",
+            "args": {
+              "location": "Seoul",
+              "units": "celsius"
+            }
+          }
+        ]
+      },
+      "result": {
+        "passed": true,
+        "routing_correct": true,
+        "args_correct": true,
+        "actual_tool_calls": [
+          {
+            "name": "weather",
+            "args": {
+              "location": "Seoul",
+              "units": "celsius"
+            }
+          }
+        ],
+        "actual_text": null,
+        "case_failure_type": "missing_info",
+        "observed_mismatch": null,
+        "failure_type": null,
+        "failures": []
+      },
+      "tool_results": [
+        {
+          "tool": "weather",
+          "args": {
+            "location": "Seoul",
+            "units": "celsius"
+          },
+          "result": {
+            "tool": "weather",
+            "location": {
+              "name": "Seoul",
+              "admin1": "Seoul",
+              "country": "South Korea",
+              "country_code": "KR",
+              "latitude": 37.566,
+              "longitude": 126.9784,
+              "feature_code": "PPLC"
+            },
+            "timezone": "Asia/Seoul",
+            "units": "celsius",
+            "current": {
+              "time": "2026-11-10T19:15",
+              "interval": 900,
+              "temperature_2m": 7.5,
+              "relative_humidity_2m": 78,
+              "apparent_temperature": 5.5,
+              "weather_code": 0,
+              "wind_speed_10m": 3.7
+            },
+            "current_units": {
+              "time": "iso8601",
+              "interval": "seconds",
+              "temperature_2m": "°C",
+              "relative_humidity_2m": "%",
+              "apparent_temperature": "°C",
+              "weather_code": "wmo code",
+              "wind_speed_10m": "km/h"
+            },
+            "condition": "Trời quang",
+            "items": [
+              {
+                "title": "Thời tiết hiện tại: Seoul, Seoul, South Korea",
+                "summary": "Trời quang; nhiệt độ 7.5 °C; cảm nhận 5.5 °C; độ ẩm 78%; gió 3.7 km/h. Thời điểm: 2026-11-10T19:15 (Asia/Seoul). Điều kiện hiện tại từ mô hình thời tiết Open-Meteo.",
+                "url": "https://api.open-meteo.com/v1/forecast?latitude=37.566&longitude=126.9784&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cweather_code%2Cwind_speed_10m&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto",
+                "source": "Open-Meteo",
+                "date": "2026-11-10T19:15"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "G07_mt_github_correction_sort_limit",
+      "phase": "B",
+      "suite": "group",
+      "case_suite": "group",
+      "is_multiturn": true,
+      "metadata": {
+        "skill": "multiturn_github_correction",
+        "difficulty": "hard",
+        "what_it_tests": "Multi-turn correction: override sort stars->updated and max_results 5->2 while keeping topic FastAPI."
+      },
+      "input": [
+        {
+          "role": "user",
+          "content": "Tìm 5 repository trên GitHub về FastAPI nhiều sao nhất"
+        },
+        {
+          "role": "user",
+          "content": "Đổi sang sắp xếp theo cập nhật gần đây nhất đi"
+        },
+        {
+          "role": "user",
+          "content": "Chỉ lấy 2 repo thôi, vẫn chủ đề FastAPI"
+        }
+      ],
+      "expect": {
+        "tool_calls": [
+          {
+            "name": "github_search",
+            "args": {
+              "sort": "updated",
+              "max_results": 2
+            }
+          }
+        ]
+      },
+      "result": {
+        "passed": true,
+        "routing_correct": true,
+        "args_correct": true,
+        "actual_tool_calls": [
+          {
+            "name": "github_search",
+            "args": {
+              "query": "FastAPI",
+              "sort": "updated",
+              "max_results": 2
+            }
+          }
+        ],
+        "actual_text": null,
+        "case_failure_type": "wrong_arg_value",
+        "observed_mismatch": null,
+        "failure_type": null,
+        "failures": []
+      },
+      "tool_results": [
+        {
+          "tool": "github_search",
+          "args": {
+            "query": "FastAPI",
+            "sort": "updated",
+            "max_results": 2
+          },
+          "result": {
+            "tool": "github_search",
+            "query": "FastAPI",
+            "sort": "updated",
+            "order": "desc",
+            "total_count": 535333,
+            "incomplete_results": false,
+            "items": [
+              {
+                "title": "emilygarcia59/fastapi-demo",
+                "url": "https://github.com/emilygarcia59/fastapi-demo",
+                "source": "github.com",
+                "summary": "个人笔记与练习(linux)",
+                "stars": 0,
+                "forks": 0,
+                "language": null,
+                "license": null,
+                "topics": [],
+                "archived": false,
+                "date": "2026-11-10T10:26:33Z"
+              },
+              {
+                "title": "laura-tanakaaft/fastapi-demo",
+                "url": "https://github.com/laura-tanakaaft/fastapi-demo",
+                "source": "github.com",
+                "summary": "data practice, nothing fancy",
+                "stars": 0,
+                "forks": 0,
+                "language": null,
+                "license": null,
+                "topics": [],
+                "archived": false,
+                "date": "2026-11-10T10:26:33Z"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "G08_mt_deduplicate_existing_items",
+      "phase": "B",
+      "suite": "group",
+      "case_suite": "group",
+      "is_multiturn": true,
+      "metadata": {
+        "skill": "multiturn_deduplicate_routing",
+        "difficulty": "medium",
+        "what_it_tests": "Multi-turn local tool routing: call deduplicate on supplied items without extra lookup/fetch/format."
+      },
+      "input": [
+        {
+          "role": "user",
+          "content": "Đây là 2 nguồn mình đã thu thập: 1) title='OpenAI News', url='https://openai.com/news?utm_source=x' ; 2) title='OpenAI News copy', url='https://openai.com/news#top'"
+        },
+        {
+          "role": "user",
+          "content": "Hãy lọc bỏ các URL trùng lặp khỏi 2 nguồn trên, không cần tìm kiếm thêm hay định dạng."
+        }
+      ],
+      "expect": {
+        "tool_calls": [
+          {
+            "name": "deduplicate",
+            "args": {}
+          }
+        ]
+      },
+      "result": {
+        "passed": true,
+        "routing_correct": true,
+        "args_correct": true,
+        "actual_tool_calls": [
+          {
+            "name": "deduplicate",
+            "args": {
+              "maxItems": 100,
+              "items": [
+                {
+                  "url": "https://openai.com/news?utm_source=x"
+                },
+                {
+                  "url": "https://openai.com/news#top"
+                }
+              ]
+            }
+          }
+        ],
+        "actual_text": null,
+        "case_failure_type": "wrong_tool",
+        "observed_mismatch": null,
+        "failure_type": null,
+        "failures": []
+      },
+      "tool_results": [
+        {
+          "tool": "deduplicate",
+          "args": {
+            "maxItems": 100,
+            "items": [
+              {
+                "url": "https://openai.com/news?utm_source=x"
+              },
+              {
+                "url": "https://openai.com/news#top"
+              }
+            ]
+          },
+          "result": {
+            "error": "TypeError",
+            "message": "deduplicate_sources() got an unexpected keyword argument 'maxItems'"
+          }
+        }
+      ]
+    },
+    {
+      "id": "G09_mt_citation_audit_existing_items",
+      "phase": "B",
+      "suite": "group",
+      "case_suite": "group",
+      "is_multiturn": true,
+      "metadata": {
+        "skill": "multiturn_citation_audit_routing",
+        "difficulty": "medium",
+        "what_it_tests": "Multi-turn local audit routing: call citation_audit on supplied items without calling fetch."
+      },
+      "input": [
+        {
+          "role": "user",
+          "content": "Danh sách nguồn hiện có: 1) title='Paper A', source='arxiv.org', url='https://arxiv.org/abs/1706.03762' ; 2) title='', source='', url='ftp://bad-link'"
+        },
+        {
+          "role": "user",
+          "content": "Hãy kiểm tra lỗi metadata trích dẫn (thiếu tiêu đề, thiếu nguồn, URL không hợp lệ) của danh sách trên, không gọi fetch."
+        }
+      ],
+      "expect": {
+        "tool_calls": [
+          {
+            "name": "citation_audit",
+            "args": {}
+          }
+        ]
+      },
+      "result": {
+        "passed": true,
+        "routing_correct": true,
+        "args_correct": true,
+        "actual_tool_calls": [
+          {
+            "name": "citation_audit",
+            "args": {
+              "items": [
+                {
+                  "title": "Paper A",
+                  "source": "arxiv.org",
+                  "url": "https://arxiv.org/abs/1706.03762"
+                },
+                {
+                  "title": "",
+                  "source": "",
+                  "url": "ftp://bad-link"
+                }
+              ]
+            }
+          }
+        ],
+        "actual_text": null,
+        "case_failure_type": "wrong_tool",
+        "observed_mismatch": null,
+        "failure_type": null,
+        "failures": []
+      },
+      "tool_results": [
+        {
+          "tool": "citation_audit",
+          "args": {
+            "items": [
+              {
+                "title": "Paper A",
+                "source": "arxiv.org",
+                "url": "https://arxiv.org/abs/1706.03762"
+              },
+              {
+                "title": "",
+                "source": "",
+                "url": "ftp://bad-link"
+              }
+            ]
+          },
+          "result": {
+            "tool": "citation_audit",
+            "item_count": 2,
+            "issues": [
+              {
+                "index": 1,
+                "problems": [
+                  "missing_title",
+                  "missing_source",
+                  "invalid_url"
+                ]
+              }
+            ],
+            "passed": false,
+            "scope": "Metadata only; no fact checking or network requests."
+          }
+        }
+      ]
+    },
+    {
+      "id": "G10_mt_switch_weather_to_github",
+      "phase": "B",
+      "suite": "group",
+      "case_suite": "group",
+      "is_multiturn": true,
+      "metadata": {
+        "skill": "multiturn_switch_to_github",
+        "difficulty": "hard",
+        "what_it_tests": "Multi-turn tool switch: drop cancelled weather request and call only github_search(sort=updated, max_results=2)."
+      },
+      "input": [
+        {
+          "role": "user",
+          "content": "Xem thời tiết hiện tại ở Hà Nội giúp mình."
+        },
+        {
+          "role": "user",
+          "content": "Thôi bỏ tra thời tiết đi, đổi sang tìm 2 repository GitHub về FastMCP cập nhật gần đây nhất, không gọi weather nữa."
+        }
+      ],
+      "expect": {
+        "tool_calls": [
+          {
+            "name": "github_search",
+            "args": {
+              "sort": "updated",
+              "max_results": 2
+            }
+          }
+        ]
+      },
+      "result": {
+        "passed": true,
+        "routing_correct": true,
+        "args_correct": true,
+        "actual_tool_calls": [
+          {
+            "name": "github_search",
+            "args": {
+              "query": "FastMCP",
+              "sort": "updated",
+              "max_results": 2
+            }
+          }
+        ],
+        "actual_text": null,
+        "case_failure_type": "wrong_tool",
+        "observed_mismatch": null,
+        "failure_type": null,
+        "failures": []
+      },
+      "tool_results": [
+        {
+          "tool": "github_search",
+          "args": {
+            "query": "FastMCP",
+            "sort": "updated",
+            "max_results": 2
+          },
+          "result": {
+            "tool": "github_search",
+            "query": "FastMCP",
+            "sort": "updated",
+            "order": "desc",
+            "total_count": 6796,
+            "incomplete_results": false,
+            "items": [
+              {
+                "title": "Hamed-Ghaseminezhad/weather-alerts-mcp-server",
+                "url": "https://github.com/Hamed-Ghaseminezhad/weather-alerts-mcp-server",
+                "source": "github.com",
+                "summary": "MCP server in Python (FastMCP) that returns US weather alerts from the NWS API. Based on Krish Naik's MCP crash course.",
+                "stars": 0,
+                "forks": 0,
+                "language": "Python",
+                "license": null,
+                "topics": [],
+                "archived": false,
+                "date": "2026-11-10T10:24:10Z"
+              },
+              {
+                "title": "wil971/Enterprise-KE.",
+                "url": "https://github.com/wil971/Enterprise-KE.",
+                "source": "github.com",
+                "summary": "Enterprise Knowledge Graph & FastMCP Server for secure context retrieval",
+                "stars": 1,
+                "forks": 0,
+                "language": "Python",
+                "license": null,
+                "topics": [],
+                "archived": false,
+                "date": "2026-11-10T10:20:40Z"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

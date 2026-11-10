@@ -22,9 +22,12 @@ và kiểm tra thông tin trích dẫn bằng `citation_audit`. Hai tool xử l�
 chạy local và không cần API key. Việc kiểm tra trích dẫn đánh giá metadata,
 không xác minh tính đúng sai của nội dung hay độ tin cậy của website.
 
-Ứng dụng được chạy và kiểm chứng qua hội thoại local. Báo cáo sử dụng run JSON,
-transcript và unit test trong repository làm bằng chứng; không sử dụng URL
-triển khai public làm bằng chứng đánh giá.
+Giao diện Streamlit tại `app.py` có khung chat, câu hỏi mẫu, danh sách tool,
+chi tiết từng tool call và kết quả, câu trả lời Markdown, chọn phiên bản v0–v3,
+xác nhận đúng nội dung trước khi gọi `send` và tải transcript JSON. Font Be Vietnam Pro được đóng gói trong repository để
+hiển thị tiếng Việt. Ứng dụng được kiểm chứng qua hội thoại local; báo cáo sử
+dụng run JSON, transcript và unit test làm bằng chứng, không có URL triển khai
+public.
 
 ## A2. Tool agent có
 
@@ -39,18 +42,17 @@ triển khai public làm bằng chứng đánh giá.
 | `policy` | Tìm thông tin trong policy nội bộ. | Tool starter |
 | `papers` | Tìm paper và metadata từ arXiv. | Tool starter |
 | `paper_text` | Lấy văn bản paper arXiv để nghiên cứu. | Tool starter |
-| `send` | Tool hành động có sẵn, được giữ để tương thích các case eval; không thuộc phạm vi tích hợp dịch vụ của báo cáo. | Tool starter |
+| `send` | Gửi tin nhắn Telegram sau khi người dùng duyệt đúng nội dung trong giao diện; cần cấu hình bot/chat. | Tool starter, guardrail nhóm |
 | `weather` | Tra cứu thời tiết hiện tại theo địa điểm và đơn vị. | Tool mới — Vũ Đức Tâm |
 | `github_search` | Tìm repository GitHub công khai theo chủ đề và điều kiện. | Tool mới — Vũ Đức Tâm |
 | `deduplicate` | Lọc URL trùng sau khi bỏ tracking/fragment, giữ nguồn đầu tiên. | Tool mới — Nguyễn Trung Duy |
 | `citation_audit` | Phát hiện thiếu tên bài, tên nguồn, URL; URL sai định dạng hoặc trùng. | Tool mới — Nguyễn Trung Duy |
 
 Registry và schema khai báo 14 tool, trong đó nhóm bổ sung bốn tool mới.
-Phạm Đức Hồng Đức phụ trách prompt/schema và eval; Lê Xuân Hà phụ trách
+Phạm Đức Hồng Đức phụ trách prompt/schema và eval; Lê Xuân Hạ phụ trách
 kiểm thử và case nhóm; Đỗ Minh Hoàng phụ trách UI và hội thoại tương tác.
 
 ## A3. Câu hỏi mẫu để thử
-
 1. “Tìm 3 nguồn về AI agent evaluation, lọc URL trùng rồi kiểm tra thông tin trích dẫn trước khi tổng hợp.”
 2. “Thời tiết hiện tại ở Hà Nội như thế nào? Dùng độ C.”
 3. “Tìm 3 repository GitHub về RAG, sắp xếp theo số sao giảm dần.”
@@ -89,7 +91,6 @@ Các lỗi dưới đây được đối chiếu từ `results[*].result.failure
 
 | Case ID | Failure Type | Actual Tool Calls | What Failed | Fix |
 |---|---|---|---|---|
-| v0/R03_web_news_routing | `wrong_tool` | `lookup(query="AI news", topic="news", timeframe="day")` | `query: expected 'AI', got 'AI news'` — nhồi từ khóa `"news"` vào `query` | Tách chủ đề khỏi `topic="news"` trong `system_prompt.md`; đã PASS ở v1 (`18/20`). |
 | v0/R08_out_of_scope | `out_of_scope` | `send` | Câu toán ngoài phạm vi nhưng model dùng `send` như tool trả lời. | Thêm rule ngoài phạm vi: không gọi tool; cấm dùng `send` để trình bày câu trả lời. |
 | v0/R10_missing_handle | `missing_info` | `timeline` | Thiếu tài khoản nhưng model tự đoán `sama`. | Thiếu handle phải gọi `clarify(response_type="text")`; không tự chọn tài khoản nổi tiếng. |
 | v0/R11_missing_url | `missing_info` | `fetch` | Model tự tạo `https://example.com/article` khi chưa có URL. | Chỉ dùng `fetch` với URL có thật trong hội thoại; thiếu URL phải hỏi `clarify(text)`. |
@@ -100,10 +101,18 @@ Các lỗi dưới đây được đối chiếu từ `results[*].result.failure
 | v1/R12_confirm_before_send | `wrong_boundary` | `clarify` | Chọn đúng tool nhưng dùng `response_type="text"` thay vì `"yes_no"`. | Nêu rõ xác nhận side effect phải dùng `yes_no`. |
 | v2/R12_confirm_before_send | `wrong_boundary` | `clarify` | Model vẫn ưu tiên hỏi nội dung bằng `text` trước xác nhận. | V3 quy định xác nhận `yes_no` luôn là bước đầu tiên, kể cả khi nội dung còn thiếu. |
 | v2/M06_switch_tool | `wrong_tool` | `lookup`, `social_search` | `lookup` đúng nhưng gọi thừa `social_search` sau khi người dùng nói bỏ Twitter; mismatch thực tế là `extra_tool_call`. | V3 cho lệnh hủy/chuyển nguồn ưu tiên cao hơn multi-tool và cấm gọi tool đã bị thay thế. |
+| v1/G04_weather_vs_news_trap | `wrong_tool` | `lookup`, `social_search` | Đúng `lookup(topic="news", timeframe="day")` nhưng gọi thừa `social_search`; mismatch là `extra_tool_call`. | Củng cố quy tắc chỉ gọi nguồn người dùng yêu cầu; không suy ra cần Twitter từ câu hỏi tin tức. |
 
 ## B3. Team Eval Cases
 
-List the 10 cases added to `data/eval_group.json` (5 single turn + 5 multi turn) covering `weather`, `github_search`, `deduplicate`, `citation_audit`, and routing/boundary traps. Run evidence: `runs/v1_B_group_openai_20261110T172643256578.json` (**9/10 PASS**, `case_accuracy: 0.9`, `multiturn_accuracy: 1.0`).
+Bộ `data/eval_group.json` có 10 case (5 single-turn, 5 multi-turn), bao phủ
+`weather`, `github_search`, `deduplicate`, `citation_audit` và các bẫy định
+tuyến/tham số. Run `runs/v1_B_group_openai_20261110T172643256578.json` đạt
+**9/10 PASS** (`case_accuracy: 0.9`, `multiturn_accuracy: 1.0`). Đây là run
+v1 của bộ nhóm hiện tại. Run v3 cũ
+`runs/v3_B_group_openai_20261110T151111781188.json` đạt 6/10 nhưng dùng
+**mười case khác** (cùng `dataset_id`, ID/nội dung case không trùng bộ hiện tại),
+nên hai điểm không dùng để so sánh tiến bộ v1 → v3.
 
 | Case ID | What It Tests | Expected Tool/Behavior | Result |
 |---|---|---|---|
@@ -123,12 +132,14 @@ List the 10 cases added to `data/eval_group.json` (5 single turn + 5 multi turn)
 | Hội thoại / lượt | Yêu cầu | Tool thực tế | Kết quả | File bằng chứng |
 |---|---|---|---|---|
 | Nghiên cứu, lượt 2 | Tìm 3 nguồn về AI agent evaluation. | `papers` | Trả ba nguồn paper, trạng thái `answered`. | `transcripts/v0_openai_20261110T123917769770.transcript.json` |
-| Nghiên cứu, lượt 3 | Lọc trùng và kiểm tra trích dẫn các kết quả vừa tìm. | `deduplicate`, `citation_audit` | Giữ ba nguồn, loại 0; metadata không có lỗi, `passed=true`. | Cùng transcript nghiên cứu, lượt 3 |
-| Nghiên cứu, lượt 4 | Xử lý danh sách ba nguồn mẫu có tracking và thiếu tên nguồn. | `deduplicate`, `citation_audit` | Từ ba nguồn còn hai, `removed_count=1`; phát hiện `missing_source` ở nguồn có index 1, `passed=false`. | Cùng transcript nghiên cứu, lượt 4 |
+| Nghiên cứu, lượt 3 | Lọc trùng và kiểm tra trích dẫn các kết quả vừa tìm. | `deduplicate`, `citation_audit` | Giữ ba nguồn, loại 0; metadata không có lỗi, `passed=true`. | `transcripts/v0_openai_20261110T123917769770.transcript.json` |
+| Nghiên cứu, lượt 4 | Xử lý danh sách ba nguồn mẫu có tracking và thiếu tên nguồn. | `deduplicate`, `citation_audit` | Từ ba nguồn còn hai, `removed_count=1`; phát hiện `missing_source` ở nguồn có index 1, `passed=false`. | `transcripts/v0_openai_20261110T123917769770.transcript.json` |
 | Thời tiết, lượt 1–2 | Hỏi thời tiết chưa có địa điểm, sau đó cung cấp Hà Nội. | `clarify` → `weather` | Hỏi địa điểm trước, sau đó trả một kết quả thời tiết. | `transcripts/v0_openai_20261110T120343293078.transcript.json` |
 | Tìm repository, lượt 3 | Tìm repository GitHub về MCP. | `github_search` | Trả năm repository, trạng thái `answered`. | `transcripts/v0_openai_20261110T115237434966.transcript.json` |
 
-Transcript ghi nhận các phiên bản thử nghiệm trước v3. papers và hai tool xử lý nguồn đã có lượt chạy thành công; một số lượt lookup gặp lỗi dịch vụ. citation_audit chỉ kiểm tra thông tin trích dẫn, không xác minh nội dung nguồn.
+Các transcript trên ghi nhận hội thoại OpenAI thử nghiệm trước v3, không phải
+run chấm điểm v3. `papers` và hai tool xử lý nguồn đã có lượt chạy thành công;
+một số lượt `lookup` gặp lỗi dịch vụ. `citation_audit` chỉ kiểm tra metadata.
 
 ## B5. Bonus Evidence
 
@@ -138,27 +149,29 @@ Transcript ghi nhận các phiên bản thử nghiệm trước v3. papers và h
 | `github_search` — Vũ Đức Tâm | Tìm repository công khai; hội thoại MCP trả năm kết quả. | `tools/github_search/tool.py`, `tools/github_search/TOOL.md`, transcript GitHub ở B4 |
 | `deduplicate` — Nguyễn Trung Duy | Lọc URL trùng, giữ nguồn đầu tiên và không sửa đầu vào. Demo ba nguồn loại được một nguồn trùng. | `tools/deduplicate/tool.py`, `tools/deduplicate/TOOL.md`, transcript nghiên cứu lượt 4 |
 | `citation_audit` — Nguyễn Trung Duy | Kiểm tra trường trích dẫn, URL sai/trùng; demo phát hiện `missing_source`. | `tools/citation_audit/tool.py`, `tools/citation_audit/TOOL.md`, transcript nghiên cứu lượt 3–4 |
-|  Tool unit tests (`tests/`) | Hoàn tất toàn bộ 14 stub core/bonus (`clarify`, `format`, `send`, `lookup`, `fetch`, `timeline`, `social_search`, `policy`) + 43 test cases cho 4 tool mới của nhóm (`weather`, `github_search`, `deduplicate`, `citation_audit`) = **57 test cases** trong `test_tools_todo.py` | tests/test_tools_todo.py, analysis/pytest_results.txt (pytest tests/ -v: 166 passed, 0 skipped, 0 failed) |
+| Guardrail `send` | Tool chỉ nhận xác nhận từ host cho đúng nội dung; UI hiển thị bản xem trước và nút xác nhận/hủy trước khi thực thi. Hai test UI giả lập xác nhận/hủy, không gửi Telegram thật. | `tools/send/tool.py`, `tools/send/TOOL.md`, `app.py`, `tests/test_person3.py`, `tests/test_app_ui.py` |
+| UI Streamlit — Đỗ Minh Hoàng | Chat tương tác, hiển thị tool call và kết quả JSON, render Markdown, chọn v0–v3, lưu/tải transcript; font tiếng Việt đi kèm. | `app.py`, `ui.css`, `.streamlit/config.toml`, `assets/fonts/`, transcript ở B4 |
+| Tool unit tests (`tests/`) | Hoàn tất 14 stub core/bonus và 43 test case cho bốn tool mới = **57 test case** trong `test_tools_todo.py`; thêm hai test UI. | `tests/test_tools_todo.py`, `tests/test_app_ui.py`, `analysis/pytest_results.txt` (`pytest tests/ -v`: 168 passed, 0 skipped, 0 failed) |
 
 ### Vũ Đức Tâm — Tool thời tiết và tìm repository GitHub
 
 #### Tool `weather`
 
-- **Chức năng:**
-- **Đầu vào:**
-- **Đầu ra:**
-- **Xử lý lỗi và giới hạn:**
-- **Ví dụ sử dụng:**
-- **Bằng chứng kiểm thử / hội thoại:**
+- **Chức năng:** Tra thời tiết hiện tại theo thành phố bằng Open-Meteo Geocoding và Forecast API.
+- **Đầu vào:** `location` bắt buộc; `country_code` ISO hai ký tự tùy chọn; `units` là `celsius` hoặc `fahrenheit`.
+- **Đầu ra:** Địa điểm, múi giờ, nhiệt độ, độ ẩm, gió, trạng thái thời tiết và `items` có URL nguồn.
+- **Xử lý lỗi và giới hạn:** Báo địa điểm không tìm thấy hoặc mơ hồ; trả error dict khi input sai, timeout, HTTP/API lỗi. Chỉ hỗ trợ thời tiết hiện tại.
+- **Ví dụ sử dụng:** `weather(location="Hanoi", country_code="VN", units="celsius")`.
+- **Bằng chứng kiểm thử / hội thoại:** `tests/test_tools_todo.py`; transcript thời tiết ở B4.
 
 #### Tool `github_search`
 
-- **Chức năng:**
-- **Đầu vào:**
-- **Đầu ra:**
-- **Xử lý lỗi và giới hạn:**
-- **Ví dụ sử dụng:**
-- **Bằng chứng kiểm thử / hội thoại:**
+- **Chức năng:** Tìm metadata repository GitHub công khai bằng GitHub REST Search API.
+- **Đầu vào:** `query` bắt buộc; `sort` (`best_match`, `stars`, `forks`, `updated`), `order` và `max_results` (1–10).
+- **Đầu ra:** `items` chứa tên, mô tả, URL, sao, forks, ngôn ngữ, license, topics và ngày cập nhật.
+- **Xử lý lỗi và giới hạn:** Loại repo riêng tư/thiếu URL; trả error dict khi input sai, timeout hoặc API lỗi; `GITHUB_TOKEN` là tùy chọn. Tool không đọc hay chạy mã nguồn.
+- **Ví dụ sử dụng:** `github_search(query="RAG language:Python", sort="stars", max_results=3)`.
+- **Bằng chứng kiểm thử / hội thoại:** `tests/test_tools_todo.py`; transcript GitHub ở B4.
 
 ### Nguyễn Trung Duy — Hai tool xử lý nguồn nghiên cứu
 
@@ -198,9 +211,9 @@ Lệnh chạy từ thư mục `starter_v0`:
 .\.venv\Scripts\python.exe -X utf8 -m pytest tests/ -q
 ```
 
-Kết quả tại thời điểm hoàn thiện báo cáo: **166 passed, 0 skipped**.
-. Unit test chạy offline với mock
-network, tách biệt với điểm eval lựa chọn tool/tham số. Chưa có phép đo
+Kết quả tại thời điểm hoàn thiện báo cáo: **168 passed, 0 skipped**.
+Unit test chạy offline với mock network, tách biệt với điểm eval lựa chọn
+tool/tham số. Chưa có phép đo
 riêng tổng số bug được phát hiện, nên báo cáo không gán số bug từ số test.
 
 ## B6. Reflection

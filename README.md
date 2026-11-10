@@ -1,6 +1,6 @@
 # Day 03 Lab v2 — Research Agent Tool Eval
 
-**Cấu hình nhóm:** Agent hiện chạy bằng OpenAI. Đặt `OPENAI_API_KEY` trong `starter_v0/.env`; tùy chọn `OPENAI_MODEL` mặc định là `gpt-4o-mini`. Các lệnh `chat.py`, `run_eval.py` và `preflight_provider.py` mặc định dùng OpenAI.
+**Cấu hình nhóm:** Agent và giao diện Streamlit chạy bằng OpenAI. Đặt `OPENAI_API_KEY` trong `starter_v0/.env`; tùy chọn `OPENAI_MODEL` mặc định là `gpt-4o-mini`. Các lệnh `chat.py`, `run_eval.py` và `preflight_provider.py` mặc định dùng OpenAI.
 
 ## Brief
 
@@ -47,33 +47,34 @@ Bonus:
 **Setup**
 - [ ] `.env` có provider key + `TAVILY_API_KEY`, `FIRECRAWL_API_KEY`, `RAPIDAPI_KEY`
 - [ ] `python scripts/preflight_provider.py` pass
-- [ ] `pytest` chạy được: contract test + example test xanh, TODO test đang `skipped`
+- [x] `pytest` chạy được: 168 passed, 0 skipped (log `starter_v0/analysis/pytest_results.txt`)
 
 **Prompt & tool declaration**
-- [ ] Chạy baseline `v0`, ghi vào `artifacts/version_log.csv`
-- [ ] Liệt kê các case FAIL của `v0` và gán mỗi case một loại lỗi (`wrong_tool`, `wrong_arg_value`, `missing_info`...)
-- [ ] `artifacts/system_prompt.md`: bỏ các chỉ dẫn xấu cố ý của starter (đoán thay vì hỏi, gửi không cần xác nhận, ép một bước)
-- [ ] `artifacts/system_prompt.md`: thêm rule routing (khi nào `timeline` / `social_search` / `lookup` / `fetch` / `clarify`)
-- [ ] `artifacts/tools.yaml`: viết lại `description` mỗi tool: làm gì, **khi nào dùng / khi nào không dùng**
-- [ ] `artifacts/tools.yaml`: mô tả rõ convention args (handle không có `@`, `topic=news` cho tin tức, `timeframe`, `search_type=Top|Latest`)
-- [ ] `artifacts/tools.yaml`: `send` mô tả rõ chỉ gửi khi user đã xác nhận (`confirmed=true`)
-- [ ] `v1`, `v2`, `v3`: mỗi version **một** giả thuyết, metric trước/sau trong `version_log.csv`
+- [x] Chạy baseline `v0`, ghi vào `artifacts/version_log.csv`
+- [x] Liệt kê các case FAIL của `v0` và gán mỗi case một loại lỗi (`wrong_tool`, `wrong_arg_value`, `missing_info`...)
+- [x] `artifacts/system_prompt.md`: bỏ các chỉ dẫn xấu cố ý của starter (đoán thay vì hỏi, gửi không cần xác nhận, ép một bước)
+- [x] `artifacts/system_prompt.md`: thêm rule routing (khi nào `timeline` / `social_search` / `lookup` / `fetch` / `clarify`)
+- [x] `artifacts/tools.yaml`: viết lại `description` mỗi tool: làm gì, **khi nào dùng / khi nào không dùng**
+- [x] `artifacts/tools.yaml`: mô tả rõ convention args (handle không có `@`, `topic=news` cho tin tức, `timeframe`, `search_type=Top|Latest`)
+- [x] `artifacts/tools.yaml`: `send` mô tả rõ chỉ gửi khi user đã xác nhận (`confirmed=true`)
+- [x] `v1`, `v2`, `v3`: mỗi version có giả thuyết, metric trước/sau trong `version_log.csv`
 
 **Tool mới**
-- [ ] `tools/<tên>/tool.py` + `TOOL.md` (frontmatter đúng contract trong `tools/README.md`)
-- [ ] Đăng ký trong `tools/__init__.py` (`TOOL_FUNCTIONS`) và `artifacts/tools.yaml`
-- [ ] Unit test cho tool mới trong `tests/test_tools_todo.py` (≥ 3 test)
-- [ ] Ít nhất 1 eval case trong `data/eval_group.json` kiểm tra model có route tới tool mới đúng lúc
+- [x] Bốn tool mới có `tool.py` và `TOOL.md` theo contract trong `tools/README.md`
+- [x] Đăng ký trong `tools/__init__.py` (`TOOL_FUNCTIONS`) và `artifacts/tools.yaml`
+- [x] Unit test cho tool mới trong `tests/test_tools_todo.py` (≥ 3 test/tool)
+- [x] `data/eval_group.json` có case routing cho các tool mới
 
 **Testing**
-- [ ] `data/eval_group.json`: case cho model (routing / args / boundary), xem Step 4
-- [ ] `tests/test_tools_todo.py`: unit test cho code của tool, xem Step 4b
-- [ ] `pytest`: 0 failed, 0 skipped
+- [x] `data/eval_group.json`: 10 case cho model (routing / args / boundary), xem Step 4
+- [x] `tests/test_tools_todo.py`: unit test offline cho code của tool, xem Step 4b
+- [x] `pytest`: 168 passed, 0 failed, 0 skipped
 
 **Demo & report**
-- [ ] UI chạy được + link dùng thử
-- [ ] `chat.py`: ≥ 3 lượt live, có transcript
-- [ ] `artifacts/REPORT.md` Phần A trước 16:30, Phần B trước khi nộp
+- [x] UI Streamlit chạy local, hiển thị tool call/Markdown và lưu transcript (`starter_v0/app.py`, `starter_v0/transcripts/`)
+- [ ] Link public dùng thử, nếu nhóm quyết định mở tunnel hoặc triển khai
+- [x] Hội thoại OpenAI nhiều lượt và transcript JSON trong `starter_v0/transcripts/`
+- [x] `artifacts/REPORT.md` có Phần A và Phần B với run/transcript làm bằng chứng
 
 **Bonus (tuỳ chọn)**
 - [ ] `send` có xác nhận trước khi gửi, có transcript chứng minh
@@ -92,7 +93,7 @@ starter_v0/
     conftest.py               # offline fixtures: block real network, fake_http, clean env
     test_tool_contract.py     # tools.yaml <-> code <-> eval stay in sync (given, keep green)
     test_tools_examples.py    # worked examples to copy
-    test_tools_todo.py        # TODO(student): tool unit test challenge
+    test_tools_todo.py        # unit test offline cho tool core và bốn tool mới
   artifacts/
     system_prompt.md          # student edits
     tools.yaml                # student edits
@@ -310,6 +311,22 @@ Try at least 3 live turns, for example:
 - A normal research request.
 - A request thiếu thông tin (không nói rõ account/URL), rồi lượt sau bổ sung.
 - Một request "đăng/gửi bản tin lên Telegram" — quan sát agent có hành động ngay hay hỏi lại trước, rồi tự quyết định hành vi nào mới đúng và sửa prompt cho khớp.
+
+### Giao diện Streamlit
+
+Từ thư mục `starter_v0`, chạy:
+
+```bash
+python -m streamlit run app.py
+```
+
+Mở `http://localhost:8501`. Sidebar cho phép chọn artifact v0–v3, xem danh sách
+tool, bắt đầu phiên mới và tải transcript JSON. Khung chat hiển thị tool call,
+tham số, kết quả và câu trả lời Markdown; mỗi lượt được lưu vào `transcripts/`.
+Khi agent muốn dùng `send`, giao diện hiển thị nguyên văn tin nhắn và yêu cầu
+bấm **Xác nhận gửi** hoặc **Hủy gửi**. Việc gõ “đồng ý” trong chat không tự cấp
+quyền gửi. Cần cấu hình `TELEGRAM_BOT_TOKEN` và `TELEGRAM_CHAT_ID` trong `.env`
+nếu muốn thử gửi thật.
 
 ## Deploy nhanh để team khác dùng thử (khuyến nghị: Cloudflare Tunnel)
 

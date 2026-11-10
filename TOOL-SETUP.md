@@ -181,11 +181,14 @@ curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/getUpdates"
 TELEGRAM_CHAT_ID=-1001234567890
 ```
 
-Direct tool test (verifies the bot token/chat only):
+Kiểm tra guardrail offline (không gửi Telegram thật):
 
 ```bash
-python -c "from tools import TOOL_FUNCTIONS as T; print(T['send']('AI20k test message', confirmed=True))"
+python -m pytest tests/test_tools_todo.py -k send -q
 ```
+
+`send` cần xác nhận từ giao diện đáng tin cậy cho đúng nội dung trước khi gọi
+API. Truyền `confirmed=True` trực tiếp vào registry không đủ để gửi.
 
 ## Final Checklist
 
